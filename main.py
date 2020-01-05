@@ -115,7 +115,7 @@ def test(epoch):
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
             if i == 0:
-                n = min(data.size(0), 8)
+                n = min(data.size(0), 10)
                 comparison = torch.cat([data[:n],
                                       recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
                 save_image(comparison.cpu(),
@@ -125,12 +125,13 @@ def test(epoch):
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
 if __name__ == "__main__":
+    latent_size = args.latent_size
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
         with torch.no_grad():
-            #sample = torch.randn(64, 20).to(device)
-            interpolation = torch.arange(-6, 6 + 0.1, 2/3)
+            sample = torch.randn(64, latent_size).to(device)
+            #interpolation = torch.arange(-6, 6 + 0.1, 2/3)
             sample = model.decode(sample).cpu()
             save_image(sample.view(64, 1, 28, 28),
                        'results/sample_' + str(epoch) + '.png')
