@@ -134,4 +134,4 @@ if __name__ == "__main__":
             #interpolation = torch.arange(-6, 6 + 0.1, 2/3)
             sample = model.decode(sample).cpu()
             save_image(sample.view(64, 1, 28, 28),
-                       'results/sample_' + str(epoch) + '.png')
+                       'results/sample_' + str(epoch) + '.png',nrow=10)
