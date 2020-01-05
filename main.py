@@ -20,6 +20,7 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--beta', type=float, default=4, metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
+parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -41,10 +42,11 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
 
+        latent = args.latent_size
         self.fc1 = nn.Linear(784, 400)
-        self.fc21 = nn.Linear(400, 20)
-        self.fc22 = nn.Linear(400, 20)
-        self.fc3 = nn.Linear(20, 400)
+        self.fc21 = nn.Linear(400, latent)
+        self.fc22 = nn.Linear(400, latent)
+        self.fc3 = nn.Linear(latent, 400)
         self.fc4 = nn.Linear(400, 784)
 
     def encode(self, x):
@@ -127,7 +129,8 @@ if __name__ == "__main__":
         train(epoch)
         test(epoch)
         with torch.no_grad():
-            sample = torch.randn(64, 20).to(device)
+            #sample = torch.randn(64, 20).to(device)
+            interpolation = torch.arange(-6, 6 + 0.1, 2/3)
             sample = model.decode(sample).cpu()
             save_image(sample.view(64, 1, 28, 28),
                        'results/sample_' + str(epoch) + '.png')
