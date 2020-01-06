@@ -6,6 +6,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
+import numpy as np
 
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
@@ -20,6 +21,7 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--beta', type=float, default=4, metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
+parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -29,11 +31,11 @@ device = torch.device("cuda" if args.cuda else "cpu")
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 train_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('../data', train=True, download=True,
+    datasets.FashionMNIST('../data', train=True, download=True,
                    transform=transforms.ToTensor()),
     batch_size=args.batch_size, shuffle=True, **kwargs)
 test_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('../data', train=False, transform=transforms.ToTensor()),
+    datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
     batch_size=args.batch_size, shuffle=True, **kwargs)
 
 
@@ -41,10 +43,11 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
 
+        latent = args.latent_size
         self.fc1 = nn.Linear(784, 400)
-        self.fc21 = nn.Linear(400, 20)
-        self.fc22 = nn.Linear(400, 20)
-        self.fc3 = nn.Linear(20, 400)
+        self.fc21 = nn.Linear(400, latent)
+        self.fc22 = nn.Linear(400, latent)
+        self.fc3 = nn.Linear(latent, 400)
         self.fc4 = nn.Linear(400, 784)
 
     def encode(self, x):
@@ -63,6 +66,7 @@ class VAE(nn.Module):
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, 784))
         z = self.reparameterize(mu, logvar)
+        #print(z)
         return self.decode(z), mu, logvar
 
 
@@ -113,7 +117,7 @@ def test(epoch):
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
             if i == 0:
-                n = min(data.size(0), 8)
+                n = min(data.size(0), 10)
                 comparison = torch.cat([data[:n],
                                       recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
                 save_image(comparison.cpu(),
@@ -123,11 +127,31 @@ def test(epoch):
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
 if __name__ == "__main__":
+    latent_size = args.latent_size
+    interpolation = torch.arange(-2, 2 + 0.1, 4 / 9)
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
-        with torch.no_grad():
-            sample = torch.randn(64, 20).to(device)
-            sample = model.decode(sample).cpu()
-            save_image(sample.view(64, 1, 28, 28),
-                       'results/sample_' + str(epoch) + '.png')
+        if epoch % 10 == 0:
+            with torch.no_grad():
+                for z in range(10):
+                    list=[]
+                    for i in range(6): #ID
+                        sample = torch.randn(1, latent_size).to(device)
+                        list_tensor = []
+                        for val in interpolation:
+                            sample[0][z] = val
+                            #print(sample)
+                            list_tensor.append(sample)
+                        #print(list_tensor)
+                        #print(list_tensor.size())
+                        sample = torch.cat(list_tensor)
+                        sample = model.decode(sample).cpu()
+                        list.append(sample)
+                    #print(list.size())
+                    sample = torch.cat(list)
+                    #print(sample)
+                    #print(sample.size())
+
+                    save_image(sample.view(60, 1, 28, 28),
+                        'results/sample_' + str(epoch) + '_z'+ str(z+1)+'.png',nrow=10)
