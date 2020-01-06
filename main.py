@@ -6,6 +6,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
+import numpy as np
 
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
@@ -65,6 +66,7 @@ class VAE(nn.Module):
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, 784))
         z = self.reparameterize(mu, logvar)
+        #print(z)
         return self.decode(z), mu, logvar
 
 
@@ -126,14 +128,19 @@ def test(epoch):
 
 if __name__ == "__main__":
     latent_size = args.latent_size
+    interpolation = torch.arange(-2, 2 + 0.1, 4 / 9)
+    list = []
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
         with torch.no_grad():
-            sample = torch.randn(10, latent_size).to(device)
-            interpolation = torch.arange(-3, 3 + 0.1, 2/3)
-            for i in range(len(interpolation)):
-                sample[i][0] = interpolation[i]
-            sample = F.sigmoid(model.decode(sample)).cpu()
+            for i in range(6): #ID
+                sample = torch.randn(1, latent_size).to(device)
+                for j in range(len(interpolation)):
+                    sample[0] = interpolation[j]
+                    sample = model.decode(sample).cpu()
+                    list.append(sample)
+
+            sample = torch.Tensor(list)
             save_image(sample.view(10, 1, 28, 28),
-                       'results/sample_' + str(epoch) + '.png',nrow=10)
+                'results/sample_' + str(epoch) + '.png',nrow=10)
