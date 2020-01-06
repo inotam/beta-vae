@@ -136,10 +136,14 @@ if __name__ == "__main__":
         with torch.no_grad():
             for i in range(6): #ID
                 sample = torch.randn(1, latent_size).to(device)
+                list_tensor = []
                 for j in range(len(interpolation)):
                     sample[0] = interpolation[j]
+                    list_tensor.append(sample)
+                sample = torch.Tensor(list_tensor)
                 sample = model.decode(sample).cpu()
                 list.append(sample)
+            print(list.size())
             sample = torch.Tensor(list)
             print(sample)
             print(sample.size())
