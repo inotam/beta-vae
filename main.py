@@ -90,6 +90,7 @@ def loss_function(recon_x, x, mu, logvar):
 def train(epoch):
     model.train()
     train_loss = 0
+    train_KLD  = 0
     for batch_idx, (data, _) in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
