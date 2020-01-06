@@ -129,7 +129,7 @@ def test(epoch):
 
 if __name__ == "__main__":
     latent_size = args.latent_size
-    interpolation = torch.arange(-2, 2 + 0.1, 4 / 9)
+    interpolation = torch.arange(-3, 3 + 0.1, 2 / 3)
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
