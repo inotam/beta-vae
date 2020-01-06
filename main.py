@@ -130,8 +130,10 @@ if __name__ == "__main__":
         train(epoch)
         test(epoch)
         with torch.no_grad():
-            sample = torch.randn(64, latent_size).to(device)
-            #interpolation = torch.arange(-6, 6 + 0.1, 2/3)
-            sample = model.decode(sample).cpu()
-            save_image(sample.view(64, 1, 28, 28),
+            sample = torch.randn(10, latent_size).to(device)
+            interpolation = torch.arange(-3, 3 + 0.1, 2/3)
+            for i in range(len(interpolation)):
+                sample[i][0] = interpolation[i]
+            sample = F.sigmoid(model.decode(sample)).cpu()
+            save_image(sample.view(10, 1, 28, 28),
                        'results/sample_' + str(epoch) + '.png',nrow=10)
