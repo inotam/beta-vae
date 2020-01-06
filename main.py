@@ -109,12 +109,13 @@ def train(epoch):
         #         100. * batch_idx / len(train_loader),
         #         loss.item() / len(data)))
 
-    print('====> Epoch: {} Average loss: {:.4f}'.format(
-          epoch, train_loss / len(train_loader.dataset)))
-    print('====> Epoch: {} Average BCE: {:.4f}'.format(
-        epoch, train_bce / len(train_loader.dataset)))
-    print('====> Epoch: {} Average KLD: {:.4f}'.format(
-          epoch, train_kld / len(train_loader.dataset)))
+    if epoch % 10 == 0:
+        print('====> Epoch: {} Average loss: {:.4f}'.format(
+              epoch, train_loss / len(train_loader.dataset)))
+        print('====> Epoch: {} Average BCE: {:.4f}'.format(
+            epoch, train_bce / len(train_loader.dataset)))
+        print('====> Epoch: {} Average KLD: {:.4f}'.format(
+              epoch, train_kld / len(train_loader.dataset)))
 
 
 def test(epoch):
@@ -127,7 +128,7 @@ def test(epoch):
         for i, (data, _) in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
-            loss, bce, kld = loss_function(recon_batch, data, mu, logvar).item()
+            loss, bce, kld = loss_function(recon_batch, data, mu, logvar)
             test_loss += loss
             test_bce += bce
             test_kld += kld
@@ -139,9 +140,10 @@ def test(epoch):
                          'results/reconstruction_' + str(epoch) + '.png', nrow=n)
 
     #test_loss /= len(test_loader.dataset)
-    print('====> Test set loss: {:.4f}'.format(test_loss/len(test_loader.dataset)))
-    print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
-    print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
+    if epoch % 10 ==0:
+        print('====> Test set loss: {:.4f}'.format(test_loss/len(test_loader.dataset)))
+        print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
+        print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
 
 if __name__ == "__main__":
     latent_size = args.latent_size
