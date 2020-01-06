@@ -132,25 +132,26 @@ if __name__ == "__main__":
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
-        list= []
-        with torch.no_grad():
-            for i in range(6): #ID
-                sample = torch.randn(1, latent_size).to(device)
-                list_tensor = []
+        if epoch % 10 == 0:
+            with torch.no_grad():
+                for z in range(10):
+                    list=[]
+                    for i in range(6): #ID
+                        sample = torch.randn(1, latent_size).to(device)
+                        list_tensor = []
+                        for val in interpolation:
+                            sample[0][z] = val
+                            #print(sample)
+                            list_tensor.append(sample)
+                        #print(list_tensor)
+                        #print(list_tensor.size())
+                        sample = torch.cat(list_tensor)
+                        sample = model.decode(sample).cpu()
+                        list.append(sample)
+                    #print(list.size())
+                    sample = torch.cat(list)
+                    #print(sample)
+                    #print(sample.size())
 
-                for val in interpolation:
-                    sample[0][0] = val
-                    print(sample)
-                    list_tensor.append(sample)
-                print(list_tensor)
-                #print(list_tensor.size())
-                sample = torch.cat(list_tensor)
-                sample = model.decode(sample).cpu()
-                list.append(sample)
-            #print(list.size())
-            sample = torch.cat(list)
-            #print(sample)
-            #print(sample.size())
-
-            save_image(sample.view(60, 1, 28, 28),
-                'results/sample_' + str(epoch) + '.png',nrow=10)
+                    save_image(sample.view(60, 1, 28, 28),
+                        'results/sample_' + str(epoch) + '_z'+ str(z+1)+'.png',nrow=10)
