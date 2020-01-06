@@ -116,7 +116,7 @@ def test(epoch):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
-            if i == 0:
+            if i == 0 and (epoch % 10 ==0):
                 n = min(data.size(0), 10)
                 comparison = torch.cat([data[:n],
                                       recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
