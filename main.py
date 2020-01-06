@@ -132,14 +132,15 @@ if __name__ == "__main__":
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
-        list[]
+        list= []
         with torch.no_grad():
             for i in range(6): #ID
                 sample = torch.randn(1, latent_size).to(device)
                 list_tensor = []
-                j = 0
-                for j in range(len(interpolation)):
-                    sample[0][0] = interpolation[j]
+
+                for val in interpolation:
+                    sample[0][0] = val
+                    print(sample)
                     list_tensor.append(sample)
                 print(list_tensor)
                 #print(list_tensor.size())
