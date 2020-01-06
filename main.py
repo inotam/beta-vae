@@ -128,6 +128,7 @@ def test(epoch):
         for i, (data, _) in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
+
             loss, bce, kld = loss_function(recon_batch, data, mu, logvar)
             test_loss += loss
             test_bce += bce
