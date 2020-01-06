@@ -66,7 +66,6 @@ class VAE(nn.Module):
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, 784))
         z = self.reparameterize(mu, logvar)
-        #print(z)
         return self.decode(z), mu, logvar
 
 
@@ -84,19 +83,24 @@ def loss_function(recon_x, x, mu, logvar):
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
-    return BCE + args.beta*KLD
+    return BCE + args.beta*KLD, BCE, KLD
 
 
 def train(epoch):
     model.train()
     train_loss = 0
+    train_bce = 0
+    train_kld = 0
     for batch_idx, (data, _) in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
-        loss = loss_function(recon_batch, data, mu, logvar)
+        loss, bce, kld = loss_function(recon_batch, data, mu, logvar)
         loss.backward()
+
         train_loss += loss.item()
+        train_bce += bce.item()
+        train_kld += kld.item()
         optimizer.step()
 
         # if batch_idx % args.log_interval == 0:
@@ -107,16 +111,26 @@ def train(epoch):
 
     print('====> Epoch: {} Average loss: {:.4f}'.format(
           epoch, train_loss / len(train_loader.dataset)))
+    print('====> Epoch: {} Average BCE: {:.4f}'.format(
+        epoch, train_bce / len(train_loader.dataset)))
+    print('====> Epoch: {} Average KLD: {:.4f}'.format(
+          epoch, train_kld / len(train_loader.dataset)))
 
 
 def test(epoch):
     model.eval()
     test_loss = 0
+    test_bce = 0
+    test_kld = 0
+
     with torch.no_grad():
         for i, (data, _) in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
-            test_loss += loss_function(recon_batch, data, mu, logvar).item()
+            loss, bce, kld = loss_function(recon_batch, data, mu, logvar).item()
+            test_loss += loss
+            test_bce += bce
+            test_kld += kld
             if i == 0 and (epoch % 10 ==0):
                 n = min(data.size(0), 10)
                 comparison = torch.cat([data[:n],
@@ -124,8 +138,10 @@ def test(epoch):
                 save_image(comparison.cpu(),
                          'results/reconstruction_' + str(epoch) + '.png', nrow=n)
 
-    test_loss /= len(test_loader.dataset)
-    print('====> Test set loss: {:.4f}'.format(test_loss))
+    #test_loss /= len(test_loader.dataset)
+    print('====> Test set loss: {:.4f}'.format(test_loss/len(test_loader.dataset)))
+    print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
+    print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
 
 if __name__ == "__main__":
     latent_size = args.latent_size
@@ -144,14 +160,6 @@ if __name__ == "__main__":
                             sample[0][z] = val
                             #print(sample)
                             list.append(sample.clone())
-                            #print(list)
-                            #print('-------------------¥n'+str(val))
-                            #print(list)
-                        #print(list_tensor)
-                        #print(list_tensor.size())
-                        #sample = torch.cat(list_tensor)
-                        #sample = model.decode(sample).cpu()
-                        #list.append(sample)
                     sample = torch.cat(list)
                     generate = model.decode(sample).cpu()
                     #print(list.size())
