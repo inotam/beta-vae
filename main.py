@@ -142,5 +142,5 @@ if __name__ == "__main__":
                     list.append(sample)
 
             sample = torch.Tensor(list)
-            save_image(sample.view(10, 1, 28, 28),
+            save_image(sample.view(60, 1, 28, 28),
                 'results/sample_' + str(epoch) + '.png',nrow=10)
