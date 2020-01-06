@@ -98,6 +98,7 @@ def train(epoch):
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
+
         # if batch_idx % args.log_interval == 0:
         #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
         #         epoch, batch_idx * len(data), len(train_loader.dataset),
