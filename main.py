@@ -138,9 +138,11 @@ if __name__ == "__main__":
                 sample = torch.randn(1, latent_size).to(device)
                 for j in range(len(interpolation)):
                     sample[0] = interpolation[j]
-                    sample = model.decode(sample).cpu()
-                    list.append(sample)
-
+                sample = model.decode(sample).cpu()
+                list.append(sample)
             sample = torch.Tensor(list)
+            print(sample)
+            print(sample.size())
+
             save_image(sample.view(60, 1, 28, 28),
                 'results/sample_' + str(epoch) + '.png',nrow=10)
