@@ -146,6 +146,7 @@ def test(epoch):
         print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
         print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
 
+
 if __name__ == "__main__":
     latent_size = args.latent_size
     interpolation = torch.arange(-3, 3 + 0.1, 2 / 3)
