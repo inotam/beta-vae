@@ -1,12 +1,12 @@
 from __future__ import print_function
 import argparse
 import torch
-import torch.utils.data
 from torch import nn, optim
 from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
 import numpy as np
+import pickle
 
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
@@ -30,6 +30,12 @@ torch.manual_seed(args.seed)
 device = torch.device("cuda" if args.cuda else "cpu")
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+
+with open('../data/train.pickle','rb') as f:
+    dataset_train = pickle.load(f)
+
+
+
 train_loader = torch.utils.data.DataLoader(
     datasets.FashionMNIST('../data', train=True, download=True,
                    transform=transforms.ToTensor()),
@@ -145,7 +151,6 @@ def test(epoch):
         print('====> Test set loss: {:.4f}'.format(test_loss/len(test_loader.dataset)))
         print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
         print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
-
 
 if __name__ == "__main__":
     latent_size = args.latent_size
