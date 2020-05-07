@@ -34,14 +34,17 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 with open('../data/train.pickle','rb') as f:
     dataset_train = pickle.load(f)
 
+with open('../data/test.pickle', 'rb') as f:
+    dataset_test = pickle.load(f)
 
 
 train_loader = torch.utils.data.DataLoader(
-    datasets.FashionMNIST('../data', train=True, download=True,
-                   transform=transforms.ToTensor()),
+    #datasets.FashionMNIST('../data', train=True, download=True,transform=transforms.ToTensor()),
+    dataset_train,
     batch_size=args.batch_size, shuffle=True, **kwargs)
 test_loader = torch.utils.data.DataLoader(
-    datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
+    #datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
+    dataset_test,
     batch_size=args.batch_size, shuffle=True, **kwargs)
 
 
