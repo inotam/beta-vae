@@ -7,7 +7,11 @@ from torchvision import datasets, transforms
 from torchvision.utils import save_image
 import numpy as np
 import pickle
+import os
+import datetime
 
+now = datetime.datetime.now()
+start_time =  now.strftime('%Y%m%d-%H:%M:%S')
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -22,6 +26,8 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--beta', type=float, default=4, metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
 parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
+parser.add_argument('--start-time', type=str, default=start_time, metavar='ST', help='(default: today_time)')
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -37,6 +43,13 @@ with open('../data/train.pickle','rb') as f:
 with open('../data/test.pickle', 'rb') as f:
     dataset_test = pickle.load(f)
 
+os.mkdir("./results/"+args.start_time+'/')
+os.mkdir("./results/"+args.start_time+'/images/')
+os.mkdir("./results/"+args.start_time+'/images/train')
+os.mkdir("./results/"+args.start_time+'/images/test')
+os.mkdir("./results/"+args.start_time+'/images/sample')
+
+dict = {'hyper-parameter':args}
 
 train_loader = torch.utils.data.DataLoader(
     #datasets.FashionMNIST('../data', train=True, download=True,transform=transforms.ToTensor()),
@@ -77,10 +90,8 @@ class VAE(nn.Module):
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
-
 model = VAE().to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
@@ -97,9 +108,11 @@ def loss_function(recon_x, x, mu, logvar):
 
 def train(epoch):
     model.train()
+
     train_loss = 0
     train_bce = 0
     train_kld = 0
+
     for batch_idx, (data, _) in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
@@ -112,12 +125,6 @@ def train(epoch):
         train_kld += kld.item()
         optimizer.step()
 
-        # if batch_idx % args.log_interval == 0:
-        #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-        #         epoch, batch_idx * len(data), len(train_loader.dataset),
-        #         100. * batch_idx / len(train_loader),
-        #         loss.item() / len(data)))
-
     if epoch % 10 == 0:
         print('====> Epoch: {} Average loss: {:.4f}'.format(
               epoch, train_loss / len(train_loader.dataset)))
@@ -125,6 +132,10 @@ def train(epoch):
             epoch, train_bce / len(train_loader.dataset)))
         print('====> Epoch: {} Average KLD: {:.4f}'.format(
               epoch, train_kld / len(train_loader.dataset)))
+
+    if epoch == args.epochs:
+        dict.update(train_loss = train_loss,train_bce=train_bce, train_kld = train_kld)
+
 
 
 def test(epoch):
@@ -145,7 +156,7 @@ def test(epoch):
             if i == 0 and (epoch % 10 ==0):
                 n = min(data.size(0), 10)
                 comparison = torch.cat([data[:n],
-                                      recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
+                recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
                 save_image(comparison.cpu(),
                          'results/reconstruction_' + str(epoch) + '.png', nrow=n)
 
@@ -155,28 +166,32 @@ def test(epoch):
         print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
         print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
 
+    if epoch == args.epochs:
+        dict.update(test_loss = test_loss, test_bce =test_bce, test_kld = test_kld)
+
 if __name__ == "__main__":
     latent_size = args.latent_size
     interpolation = torch.arange(-3, 3 + 0.1, 2 / 3)
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
-        if epoch % 10 == 0 or epoch ==1 :
+        if epoch % 10 == 0:
             with torch.no_grad():
                 for z in range(10):
                     list=[]
                     for i in range(6): #ID
                         sample = torch.randn(1, latent_size).to(device)
-                        #list_tensor = []
+
                         for val in interpolation:
                             sample[0][z] = val
                             #print(sample)
                             list.append(sample.clone())
                     sample = torch.cat(list)
                     generate = model.decode(sample).cpu()
-                    #print(list.size())
-                    #sample = torch.cat(list)
-                    #print(sample)
-                    #print(sample.size())
+
                     save_image(generate.view(60, 1, 28, 28),
-                        'results/sample_' + str(epoch) + '_z'+ str(z+1)+'.png',nrow=10)
+                        'results/' + args.start-start_time + '/images/sample/' + str(epoch) + '_z'+ str(z+1)+'.png',nrow=10)
+
+    dict.update(model=model.to('cpu'))
+
+

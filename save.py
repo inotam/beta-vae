@@ -10,6 +10,9 @@ import pickle
 import os
 import datetime
 
+now = datetime.datetime.now()
+start_time =  now.strftime('%Y%m%d-%H:%M:%S')
+
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 128)')
@@ -23,6 +26,8 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--beta', type=float, default=4, metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
 parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
+parser.add_argument('--start-time', type=str, default=start_time, metavar='ST', help='(default: today_time)')
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -32,18 +37,21 @@ device = torch.device("cuda" if args.cuda else "cpu")
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
-#print(args)
-#print(parser)
+os.mkdir("./results/"+args.start_time+'/')
+os.mkdir("./results/"+args.start_time+'/images/')
+os.mkdir("./results/"+args.start_time+'/images/train')
+os.mkdir("./results/"+args.start_time+'/images/test')
+
 dict = {'hyper-parameter':args}
-with open('./test.pickle','wb') as f:
+with open('./results/' + args.start_time + '/test.pickle','wb') as f:
     pickle.dump(dict, f)
 
-with open('./test.pickle','rb') as f:
+with open('./results/' + args.start_time + '/test.pickle','rb') as f:
     x = pickle.load(f)
     print(x)
 
-# x.exists("./output/v20/v%d" % i)):
-# x
+# exists("./output/v20/v%d" % i)):
+#
 #
 # os.mkdir("./output/v20/v%d" % i)
 # os.mkdir("./output/v20/v%d/pretrain" % i)
@@ -55,6 +63,5 @@ with open('./test.pickle','rb') as f:
 #
 # output_dir = ("./output/v20/v%d" % i)
 
-now = datetime.datetime.now()
-os.mkdir("./results/"+now.strftime('%Y%m%d-%H:%M:%S')+'/')
+
 
