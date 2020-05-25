@@ -6,12 +6,12 @@ from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
 import numpy as np
-import pickle
+import cloudpickle
 import os
 import datetime
 
 now = datetime.datetime.now()
-start_time =  now.strftime('%Y%m%d-%H:%M:%S')
+start_time =  now.strftime('%Y%m%d%H%M%S')
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -38,14 +38,14 @@ device = torch.device("cuda" if args.cuda else "cpu")
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
 with open('../data/train.pickle','rb') as f:
-    dataset_train = pickle.load(f)
+    dataset_train = cloudpickle.load(f)
 
 with open('../data/test.pickle', 'rb') as f:
-    dataset_test = pickle.load(f)
+    dataset_test = cloudpickle.load(f)
 
 os.mkdir("./results/"+args.start_time+'/')
 os.mkdir("./results/"+args.start_time+'/images/')
-os.mkdir("./results/"+args.start_time+'/images/train')
+#os.mkdir("./results/"+args.start_time+'/images/train')
 os.mkdir("./results/"+args.start_time+'/images/test')
 os.mkdir("./results/"+args.start_time+'/images/sample')
 
@@ -158,7 +158,7 @@ def test(epoch):
                 comparison = torch.cat([data[:n],
                 recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
                 save_image(comparison.cpu(),
-                         'results/reconstruction_' + str(epoch) + '.png', nrow=n)
+                           'results/' +args.start_time+'/images/test/' + str(epoch) + '.png', nrow=n)
 
     #test_loss /= len(test_loader.dataset)
     if epoch % 10 ==0:
@@ -190,8 +190,11 @@ if __name__ == "__main__":
                     generate = model.decode(sample).cpu()
 
                     save_image(generate.view(60, 1, 28, 28),
-                        'results/' + args.start-start_time + '/images/sample/' + str(epoch) + '_z'+ str(z+1)+'.png',nrow=10)
+                        'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z'+ str(z+1)+'.png',nrow=10)
 
+    #print(model.state_dict())
     dict.update(model=model.to('cpu'))
-
+    print(dict)
+    with open('./results/' + args.start_time + '/out.pickle', 'wb') as f:
+        cloudpickle.dump(dict, f)
 
