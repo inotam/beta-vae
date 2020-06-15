@@ -105,6 +105,14 @@ def loss_function(recon_x, x, mu, logvar):
 
     return BCE + args.beta*KLD, BCE, KLD
 
+# list to save results
+train_loss_list = []
+train_bce_list = []
+train_kld_list = []
+test_loss_list = []
+test_bce_list = []
+test_kld_list = []
+
 
 def train(epoch):
     model.train()
