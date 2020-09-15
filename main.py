@@ -7,8 +7,12 @@ from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
 import numpy as np
+import  os
+import datetime
+import torch.nn.init as init
 
-
+now = datetime.datetime.now()
+start_time =  now.strftime('%Y%m%d%H%M%S')
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 128)')
@@ -22,6 +26,7 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--beta', type=float, default=4, metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
 parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
+parser.add_argument('--start-time', type=str, default=start_time, metavar='ST', help='(default: today_time)')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -37,17 +42,24 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 # test_loader = torch.utils.data.DataLoader(
 #     datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
 #     batch_size=args.batch_size, shuffle=True, **kwargs)
+os.mkdir("./results/"+args.start_time+'/')
+os.mkdir("./results/"+args.start_time+'/images/')
+#os.mkdir("./results/"+args.start_time+'/images/train')
+os.mkdir("./results/"+args.start_time+'/images/test')
+os.mkdir("./results/"+args.start_time+'/images/sample')
+
+dict = {'hyper-parameter':args}
 
 train_dataset = datasets.ImageFolder(
         # '../data/faceless_300/train_d',
-        '../data/noskin_300/train_d',
+        '../data/noskin_all/noskin_28/train_d',
         transforms.Compose([
             transforms.ToTensor(),
         ]))
 
 test_dataset = datasets.ImageFolder(
         # '../data/faceless_300/test_d',
-        '../data/noskin_300/test_d',
+        '../data/noskin_all/noskin_28/test_d',
         transforms.Compose([
             transforms.ToTensor(),
         ]))
@@ -154,12 +166,14 @@ def test(epoch):
             test_loss += loss
             test_bce += bce
             test_kld += kld
-            if i == 0 and (epoch % 10 ==0):
+            if i == 0 and (epoch % 10 == 0):
                 n = min(data.size(0), 10)
+                batch_size = min(data.size(0), args.batch_size)
                 comparison = torch.cat([data[:n],
-                                      recon_batch.view(args.batch_size, 3, 28, 28)[:n]])
+                                        recon_batch.view(batch_size, 3, 28, 28)[:n]])
+                # recon_batch.view(1, 3, 300, 300)[:n]])
                 save_image(comparison.cpu(),
-                         'results/reconstruction_' + str(epoch) + '.png', nrow=n)
+                           'results/' + args.start_time + '/images/test/' + str(epoch) + '.png', nrow=n)
 
     #test_loss /= len(test_loader.dataset)
     if epoch % 10 ==0:
@@ -174,22 +188,20 @@ if __name__ == "__main__":
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
-        if epoch % 10 == 0 or epoch ==1 :
+        if epoch % 10 == 0:
             with torch.no_grad():
-                for z in range(10):
-                    list=[]
-                    for i in range(6): #ID
+                for z in range(args.latent_size):
+                    list = []
+                    for i in range(6):  # ID
                         sample = torch.randn(1, latent_size).to(device)
-                        #list_tensor = []
+
                         for val in interpolation:
                             sample[0][z] = val
-                            #print(sample)
+                            # print(sample)
                             list.append(sample.clone())
                     sample = torch.cat(list)
                     generate = model.decode(sample).cpu()
-                    #print(list.size())
-                    #sample = torch.cat(list)
-                    #print(sample)
-                    #print(sample.size())
-                    save_image(generate.view(60, 3, 28, 28),
-                        'results/sample_' + str(epoch) + '_z'+ str(z+1)+'.png',nrow=10)
+
+                    save_image(generate.view(args.latent_size * 6, 3, 28, 28),
+                               'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(
+                                   z + 1) + '.png', nrow=args.latent_size)
