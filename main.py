@@ -107,7 +107,6 @@ class VAE(nn.Module):
 model = VAE().to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
     BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784*3), reduction='sum')
