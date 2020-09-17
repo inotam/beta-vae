@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
 import numpy as np
-import  os
+import os
 import datetime
 import torch.nn.init as init
 
@@ -52,14 +52,14 @@ dict = {'hyper-parameter':args}
 
 train_dataset = datasets.ImageFolder(
         # '../data/faceless_300/train_d',
-        '../data/noskin_all/noskin_28/train_d',
+        '../data/noskin_all_v2/noskin_28/train_d',
         transforms.Compose([
             transforms.ToTensor(),
         ]))
 
 test_dataset = datasets.ImageFolder(
         # '../data/faceless_300/test_d',
-        '../data/noskin_all/noskin_28/test_d',
+        '../data/noskin_all_v2/noskin_28/test_d',
         transforms.Compose([
             transforms.ToTensor(),
         ]))
@@ -72,6 +72,8 @@ test_loader = torch.utils.data.DataLoader(
     test_dataset,
     batch_size=args.batch_size, shuffle=True, **kwargs)
 
+# print(test_dataset)
+# print(test_loader)
 class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
@@ -205,3 +207,8 @@ if __name__ == "__main__":
                     save_image(generate.view(args.latent_size * 6, 3, 28, 28),
                                'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(
                                    z + 1) + '.png', nrow=args.latent_size)
+
+    with torch.no_grad():
+        for i, (data, _) in enumerate(test_loader):
+            data = data.to(device)
+            recon_batch, mu, logvar = model(data)
