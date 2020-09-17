@@ -10,6 +10,8 @@ import numpy as np
 import os
 import datetime
 import torch.nn.init as init
+import cv2
+import glob
 
 now = datetime.datetime.now()
 start_time =  now.strftime('%Y%m%d%H%M%S')
@@ -208,6 +210,13 @@ if __name__ == "__main__":
                                    z + 1) + '.png', nrow=args.latent_size)
 
     with torch.no_grad():
-        for i, (data, _) in enumerate(test_loader):
-            data = data.to(device)
-            recon_batch, mu, logvar = model(data)
+        file = glob.glob('../data/noskin_all_v2/noskin_28/test_d/test/*.png')
+        for f in file:
+            img = cv2.imread(f)
+            img = img.transpose((2, 0, 1))
+            data = torch.from_numpy(img.astype(np.float32)).clone().to(device)
+            # data = data.to(device)
+            # recon_batch, mu, logvar = model(data)
+            mu, logvar = model.encode(data.view(-1, 784 * 3))
+            z = model.reparameterize(mu, logvar).cpu()
+            print(z)
