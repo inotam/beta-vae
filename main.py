@@ -230,7 +230,7 @@ if __name__ == "__main__":
             list.append(np.array(z[0]))
         print(len(list))
     df = pd.DataFrame(list, columns=['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10','path'])
-    df.sort_values('z1')
+    # df.sort_values('z1')
     df.to_csv('./results/' + args.start_time + '/out.csv')
     # print(df.iloc[0,10])
     dict.update(model=model.to('cpu'))
