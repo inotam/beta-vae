@@ -30,18 +30,23 @@ df = pd.read_csv(args.path, header=0, index_col=0)
 for i in range(10):
     df = df.sort_values(by=list[i])
     j = 0
-    list = []
-    for j in range(10):
-        path = df.iloc[int(j/9.0*(len(df)-1)),10]
+    list_img = []
+    # for j in range(10):
+    for j in range(len(df)):
+        # path = df.iloc[int(j/9.0*(len(df)-1)),10]
+        path = df.iloc[j, 10]
+        img = cv2.imread(path)
         img = img.transpose((2, 0, 1)) / 255.
         data = torch.from_numpy(img.astype(np.float32)).clone()
-        list.append(data)
+        list_img.append(data)
+    # print(list_img)
 
-    sample = torch.cat(list)
+    sample = torch.cat(list_img)
     # save_image(sample.view(10 , 3, 28, 28),
     #            'results/' + args.start_time + list[i] + '.png', nrow=10)
-    save_image(sample.view(10 , 3, 28, 28),
-               list[i] + '.png', nrow=10)
+    # save_image(sample.view(10 , 3, 28, 28),
+    save_image(sample.view(len(df) , 3, 28, 28),
+               list[i] + '.png', nrow=20)
 
     # save_image(sample.view(args.latent_size * 6, 3, 28, 28),
     #            'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(
