@@ -12,6 +12,10 @@ import datetime
 import torch.nn.init as init
 import cv2
 import glob
+import cloudpickle
+import csv
+import pandas as pd
+import itertools
 
 now = datetime.datetime.now()
 start_time =  now.strftime('%Y%m%d%H%M%S')
@@ -208,15 +212,57 @@ if __name__ == "__main__":
                     save_image(generate.view(args.latent_size * 6, 3, 28, 28),
                                'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(
                                    z + 1) + '.png', nrow=args.latent_size)
-
+    # print('yes')
     with torch.no_grad():
-        file = glob.glob('../data/noskin_all_v2/noskin_28/test_d/test/*.png')
+        list = []
+        file = glob.glob('../data/noskin_all_v2/noskin_28/test_d/test/*.jpg')
         for f in file:
             img = cv2.imread(f)
-            img = img.transpose((2, 0, 1))
+            img = img.transpose((2, 0, 1))/255.
             data = torch.from_numpy(img.astype(np.float32)).clone().to(device)
             # data = data.to(device)
             # recon_batch, mu, logvar = model(data)
-            mu, logvar = model.encode(data.view(-1, 784 * 3))
-            z = model.reparameterize(mu, logvar).cpu()
-            print(z)
+            data = data.unsqueeze(0)
+            # print(data)
+            mu, logvar = model.encode(data.contiguous().view(-1, 784 * 3))
+            z = model.reparameterize(mu, logvar).cpu().detach().numpy().copy()
+            z = z.tolist()
+            # print(z[1])
+            # z = itertools.chain.from_iterable(z)
+            z[0].append(f)
+            # print(z[0].shape)
+            # z[0]=np.append(z[0],f)
+            # np.savetxt('./results/' + args.start_time + '/zlist.txt',z[0])
+            list.append(np.array(z[0]))
+            # print(list[0])
+        # print(list.dtype)
+        # print(list[0][0].dtype)
+        # print(list[0][10].dtype)
+        # with open('./results/' + args.start_time + '/test.txt', 'wb') as f:
+        #     f.write(str(list[0][9]))
+        print(len(list))
+    df = pd.DataFrame(list, columns=['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10','path'])
+    df.sort_values('z1')
+    df.to_csv('./results/' + args.start_time + '/out.csv')
+    # print(df.iloc[0,10])
+    dict.update(model=model.to('cpu'))
+    # dict.update(z_list=list)
+    # print(dict)
+    # np.savetxt('./results/' + args.start_time + '/zlist.txt',list[0])
+    i=0
+    with open('./results/' + args.start_time + '/out.pickle', 'wb') as f:
+        cloudpickle.dump(dict, f)
+    # with open('./results/' + args.start_time + '/zlist.csv', 'wb') as f:
+    #     writer = csv.writer(f,lineterminator='\n')
+    #     writer.writerows(str(list[0][0]))
+        # cloudpickle.dump(list, f)
+    # print(list[0])
+
+    # with open('./results/' + args.start_time + '/zlist.txt', 'wb') as f:
+    #     for l in list:
+    #         print(l)
+    #         f.write(l)
+        # f.writelines(list)
+        # writer = csv.writer(f)
+        # for i in range(list):
+        #     writer.writerow(list[0])
