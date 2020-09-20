@@ -188,10 +188,10 @@ def test(epoch):
         print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
         print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
 
-def latant_space_exploration():
+def make_db(path):
     with torch.no_grad():
         list = []
-        file = glob.glob('../data/noskin_all_v2/noskin_28/test_d/test/*.jpg')
+        file = glob.glob(path)
         for f in file:
             img = cv2.imread(f)
             img = img.transpose((2, 0, 1))/255.
@@ -205,7 +205,27 @@ def latant_space_exploration():
             z[0].append(f)
             list.append(np.array(z[0]))
     df = pd.DataFrame(list, columns=['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10','path'])
-    df.to_csv('./results/' + args.start_time + '/out.csv')
+
+    return df
+
+def latant_space_exploration(df, name):
+    df.to_csv('./results/' + args.start_time + '/db_' + str(name)+'.csv')
+
+    for i in range(10):
+        df = df.sort_values(by=list[i])
+        j = 0
+        list_img = []
+        for j in range(len(df)):
+            # path = df.iloc[int(j/9.0*(len(df)-1)),10]
+            path = df.iloc[j, 10]
+            img = cv2.imread(path)
+            img = img.transpose((2, 0, 1)) / 255.
+            data = torch.from_numpy(img.astype(np.float32)).clone()
+            list_img.append(data)
+
+        sample = torch.cat(list_img)
+        save_image(sample.view(len(df), 3, 28, 28),
+                   'results/' + args.start_time + '/' + list[i] + '_' + str(name) + '.png', nrow=int(math.sqrt(len(df))))
 
 
 if __name__ == "__main__":
@@ -232,7 +252,11 @@ if __name__ == "__main__":
                                'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(
                                    z + 1) + '.png', nrow=args.latent_size)
 
-    latant_space_exploration()
+    df_train = make_db('../data/noskin_all_v2/noskin_28/train_d/train/*.jpg')
+    df_test = make_db('../data/noskin_all_v2/noskin_28/test_d/test/*.jpg')
+
+    latant_space_exploration(df_train,'train')
+    latant_space_exploration(df_test, 'test')
 
     dict.update(model=model.to('cpu'))
 
