@@ -15,6 +15,7 @@ import glob
 import csv
 import pandas as pd
 import itertools
+import math
 
 parser = argparse.ArgumentParser(description='data visualize')
 parser.add_argument('--path', type=str, metavar='path', help='(default: none)')
@@ -39,14 +40,10 @@ for i in range(10):
         img = img.transpose((2, 0, 1)) / 255.
         data = torch.from_numpy(img.astype(np.float32)).clone()
         list_img.append(data)
-    # print(list_img)
 
     sample = torch.cat(list_img)
-    # save_image(sample.view(10 , 3, 28, 28),
-    #            'results/' + args.start_time + list[i] + '.png', nrow=10)
-    # save_image(sample.view(10 , 3, 28, 28),
     save_image(sample.view(len(df) , 3, 28, 28),
-               list[i] + '.png', nrow=20)
+               'results/' + args.start_time +list[i] + '.png', nrow=int(math.sqrt(len(df))))
 
     # save_image(sample.view(args.latent_size * 6, 3, 28, 28),
     #            'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(

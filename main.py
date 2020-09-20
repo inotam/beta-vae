@@ -188,6 +188,25 @@ def test(epoch):
         print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
         print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
 
+def latant_space_exploration():
+    with torch.no_grad():
+        list = []
+        file = glob.glob('../data/noskin_all_v2/noskin_28/test_d/test/*.jpg')
+        for f in file:
+            img = cv2.imread(f)
+            img = img.transpose((2, 0, 1))/255.
+            data = torch.from_numpy(img.astype(np.float32)).clone().to(device)
+
+            data = data.unsqueeze(0)
+
+            mu, logvar = model.encode(data.contiguous().view(-1, 784 * 3))
+            z = model.reparameterize(mu, logvar).cpu().detach().numpy().copy()
+            z = z.tolist()
+            z[0].append(f)
+            list.append(np.array(z[0]))
+    df = pd.DataFrame(list, columns=['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10','path'])
+    df.to_csv('./results/' + args.start_time + '/out.csv')
+
 
 if __name__ == "__main__":
     latent_size = args.latent_size
@@ -212,27 +231,9 @@ if __name__ == "__main__":
                     save_image(generate.view(args.latent_size * 6, 3, 28, 28),
                                'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(
                                    z + 1) + '.png', nrow=args.latent_size)
-    # print('yes')
-    with torch.no_grad():
-        list = []
-        file = glob.glob('../data/noskin_all_v2/noskin_28/test_d/test/*.jpg')
-        for f in file:
-            img = cv2.imread(f)
-            img = img.transpose((2, 0, 1))/255.
-            data = torch.from_numpy(img.astype(np.float32)).clone().to(device)
 
-            data = data.unsqueeze(0)
+    latant_space_exploration()
 
-            mu, logvar = model.encode(data.contiguous().view(-1, 784 * 3))
-            z = model.reparameterize(mu, logvar).cpu().detach().numpy().copy()
-            z = z.tolist()
-            z[0].append(f)
-            list.append(np.array(z[0]))
-        print(len(list))
-    df = pd.DataFrame(list, columns=['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10','path'])
-    # df.sort_values('z1')
-    df.to_csv('./results/' + args.start_time + '/out.csv')
-    # print(df.iloc[0,10])
     dict.update(model=model.to('cpu'))
 
     with open('./results/' + args.start_time + '/out.pickle', 'wb') as f:
