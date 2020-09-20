@@ -255,7 +255,7 @@ if __name__ == "__main__":
     df_train = make_db('../data/noskin_all_v2/noskin_28/train_d/train/*.jpg')
     df_test = make_db('../data/noskin_all_v2/noskin_28/test_d/test/*.jpg')
 
-    latant_space_exploration(df_train,'train')
+    latant_space_exploration(df_train, 'train')
     latant_space_exploration(df_test, 'test')
 
     dict.update(model=model.to('cpu'))
