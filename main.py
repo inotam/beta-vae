@@ -230,7 +230,7 @@ def latant_space_exploration(df, name):
 
 if __name__ == "__main__":
     latent_size = args.latent_size
-    interpolation = torch.linspace(-3, 3, args.latent_size)
+    interpolation = torch.linspace(-3, 3, 10)
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
