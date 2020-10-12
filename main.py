@@ -52,14 +52,11 @@ os.mkdir("./results/"+args.start_time+'/images/sample')
 
 dict = {'hyper-parameter':args}
 
-# train_loader = torch.utils.data.DataLoader(
-#     datasets.FashionMNIST('../data', train=True, download=True,
-#                    transform=transforms.ToTensor()),
-#     batch_size=args.batch_size, shuffle=True, **kwargs)
-# test_loader = torch.utils.data.DataLoader(
-#     datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
-#     batch_size=args.batch_size, shuffle=True, **kwargs)
 if args.fminist:
+
+    chn_num = 1
+    image_size = 28
+else:
     train_dataset = datasets.ImageFolder(
             # '../data/faceless_300/train_d',
             '../data/noskin_all_v2/noskin_28/train_d',
@@ -73,19 +70,17 @@ if args.fminist:
             transforms.Compose([
                 transforms.ToTensor(),
             ]))
-    chn_num = 1
-    image_size = 28
-else:
-    train_loader = torch.utils.data.DataLoader(
-        #datasets.FashionMNIST('../data', train=True, download=True,transform=transforms.ToTensor()),
-        train_dataset,
-        batch_size=args.batch_size, shuffle=True, **kwargs)
-    test_loader = torch.utils.data.DataLoader(
-        #datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
-        test_dataset,
-        batch_size=args.batch_size, shuffle=True, **kwargs)
     chn_num = 3
     image_size = 28
+
+train_loader = torch.utils.data.DataLoader(
+    #datasets.FashionMNIST('../data', train=True, download=True,transform=transforms.ToTensor()),
+    train_dataset,
+    batch_size=args.batch_size, shuffle=True, **kwargs)
+test_loader = torch.utils.data.DataLoader(
+    #datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
+    test_dataset,
+    batch_size=args.batch_size, shuffle=True, **kwargs)
 
 class VAE(nn.Module):
     def __init__(self, chn_num=1, image_size=28, latent=10):
