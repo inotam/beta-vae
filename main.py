@@ -16,6 +16,7 @@ import cloudpickle
 import csv
 import pandas as pd
 import itertools
+import math
 
 now = datetime.datetime.now()
 start_time =  now.strftime('%Y%m%d%H%M%S')
@@ -30,9 +31,11 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--beta', type=float, default=4, metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
+parser.add_argument('--beta', type=float, default=4., metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
 parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
 parser.add_argument('--start-time', type=str, default=start_time, metavar='ST', help='(default: today_time)')
+parser.add_argument('--fminst', type=bool, default=True, metavar='FM', help='(default: fashion_MNIST)')
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -41,6 +44,14 @@ torch.manual_seed(args.seed)
 device = torch.device("cuda" if args.cuda else "cpu")
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+
+os.mkdir("./results/"+args.start_time+'/')
+os.mkdir("./results/"+args.start_time+'/images/')
+os.mkdir("./results/"+args.start_time+'/images/test')
+os.mkdir("./results/"+args.start_time+'/images/sample')
+
+dict = {'hyper-parameter':args}
+
 # train_loader = torch.utils.data.DataLoader(
 #     datasets.FashionMNIST('../data', train=True, download=True,
 #                    transform=transforms.ToTensor()),
@@ -48,48 +59,45 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 # test_loader = torch.utils.data.DataLoader(
 #     datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
 #     batch_size=args.batch_size, shuffle=True, **kwargs)
-os.mkdir("./results/"+args.start_time+'/')
-os.mkdir("./results/"+args.start_time+'/images/')
-#os.mkdir("./results/"+args.start_time+'/images/train')
-os.mkdir("./results/"+args.start_time+'/images/test')
-os.mkdir("./results/"+args.start_time+'/images/sample')
+if args.fminist:
+    train_dataset = datasets.ImageFolder(
+            # '../data/faceless_300/train_d',
+            '../data/noskin_all_v2/noskin_28/train_d',
+            transforms.Compose([
+                transforms.ToTensor(),
+            ]))
 
-dict = {'hyper-parameter':args}
+    test_dataset = datasets.ImageFolder(
+            # '../data/faceless_300/test_d',
+            '../data/noskin_all_v2/noskin_28/test_d',
+            transforms.Compose([
+                transforms.ToTensor(),
+            ]))
+    chn_num = 1
+    image_size = 28
+else:
+    train_loader = torch.utils.data.DataLoader(
+        #datasets.FashionMNIST('../data', train=True, download=True,transform=transforms.ToTensor()),
+        train_dataset,
+        batch_size=args.batch_size, shuffle=True, **kwargs)
+    test_loader = torch.utils.data.DataLoader(
+        #datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
+        test_dataset,
+        batch_size=args.batch_size, shuffle=True, **kwargs)
+    chn_num = 3
+    image_size = 28
 
-train_dataset = datasets.ImageFolder(
-        # '../data/faceless_300/train_d',
-        '../data/noskin_all_v2/noskin_28/train_d',
-        transforms.Compose([
-            transforms.ToTensor(),
-        ]))
-
-test_dataset = datasets.ImageFolder(
-        # '../data/faceless_300/test_d',
-        '../data/noskin_all_v2/noskin_28/test_d',
-        transforms.Compose([
-            transforms.ToTensor(),
-        ]))
-train_loader = torch.utils.data.DataLoader(
-    #datasets.FashionMNIST('../data', train=True, download=True,transform=transforms.ToTensor()),
-    train_dataset,
-    batch_size=args.batch_size, shuffle=True, **kwargs)
-test_loader = torch.utils.data.DataLoader(
-    #datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
-    test_dataset,
-    batch_size=args.batch_size, shuffle=True, **kwargs)
-
-# print(test_dataset)
-# print(test_loader)
 class VAE(nn.Module):
-    def __init__(self):
+    def __init__(self, chn_num=1, image_size=28, latent=10):
         super(VAE, self).__init__()
 
-        latent = args.latent_size
-        self.fc1 = nn.Linear(784*3, 400)
+        # latent = args.latent_size
+        # self.fc1 = nn.Linear(784*3, 400)
+        self.fc1 = nn.Linear(image_size * image_size * chn_num, 400)
         self.fc21 = nn.Linear(400, latent)
         self.fc22 = nn.Linear(400, latent)
         self.fc3 = nn.Linear(latent, 400)
-        self.fc4 = nn.Linear(400, 784*3)
+        self.fc4 = nn.Linear(400, image_size * image_size * chn_num)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -104,8 +112,8 @@ class VAE(nn.Module):
         h3 = F.relu(self.fc3(z))
         return torch.sigmoid(self.fc4(h3))
 
-    def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, 784*3))
+    def forward(self, x, chn_num=1, image_size=28, latent=10):
+        mu, logvar = self.encode(x.view(-1, image_size * image_size * chn_num))
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
@@ -115,7 +123,7 @@ optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784*3), reduction='sum')
+    BCE = F.binary_cross_entropy(recon_x, x.view(-1, image_size * image_size * chn_num), reduction='sum')
 
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
@@ -184,9 +192,9 @@ def test(epoch):
 
     #test_loss /= len(test_loader.dataset)
     if epoch % 10 ==0:
-        print('====> Test set loss: {:.4f}'.format(test_loss/len(test_loader.dataset)))
-        print('====> Test set BCE: {:.4f}'.format(test_bce/ len(test_loader.dataset)))
-        print('====> Test set KLD: {:.4f}'.format(test_kld / len(test_loader.dataset)))
+        print('====> Test set loss: {:.8f}'.format(test_loss/len(test_loader.dataset)))
+        print('====> Test set BCE: {:.8f}'.format(test_bce/ len(test_loader.dataset)))
+        print('====> Test set KLD: {:.8f}'.format(test_kld / len(test_loader.dataset)))
 
 def make_db(path):
     with torch.no_grad():
@@ -199,7 +207,7 @@ def make_db(path):
 
             data = data.unsqueeze(0)
 
-            mu, logvar = model.encode(data.contiguous().view(-1, 784 * 3))
+            # mu, logvar = model.encode(data.contiguous().view(-1, 784 * 3))
             z = model.reparameterize(mu, logvar).cpu().detach().numpy().copy()
             z = z.tolist()
             z[0].append(f)
