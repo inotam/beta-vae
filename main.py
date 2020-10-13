@@ -35,7 +35,6 @@ parser.add_argument('--beta', type=float, default=4., metavar='B', help='beta pa
 parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
 parser.add_argument('--start-time', type=str, default=start_time, metavar='ST', help='(default: today_time)')
 parser.add_argument('--fminst', type=bool, default=True, metavar='FM', help='(default: fashion_MNIST)')
-
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -52,7 +51,13 @@ os.mkdir("./results/"+args.start_time+'/images/sample')
 
 dict = {'hyper-parameter':args}
 
-if args.fminist:
+if args.fmnist:
+
+    with open('../data/train.pickle','rb') as f:
+        train_dataset = cloudpickle.load(f)
+
+    with open('../data/test.pickle', 'rb') as f:
+        test_dataset = cloudpickle.load(f)
 
     chn_num = 1
     image_size = 28
@@ -74,11 +79,9 @@ else:
     image_size = 28
 
 train_loader = torch.utils.data.DataLoader(
-    #datasets.FashionMNIST('../data', train=True, download=True,transform=transforms.ToTensor()),
     train_dataset,
     batch_size=args.batch_size, shuffle=True, **kwargs)
 test_loader = torch.utils.data.DataLoader(
-    #datasets.FashionMNIST('../data', train=False, transform=transforms.ToTensor()),
     test_dataset,
     batch_size=args.batch_size, shuffle=True, **kwargs)
 
@@ -137,7 +140,7 @@ def train(epoch):
     for batch_idx, (data, _) in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
-        recon_batch, mu, logvar = model(data)
+        recon_batch, mu, logvar = model(data, chn_num, image_size, args.latent_size)
         loss, bce, kld = loss_function(recon_batch, data, mu, logvar)
         loss.backward()
 
@@ -170,7 +173,7 @@ def test(epoch):
     with torch.no_grad():
         for i, (data, _) in enumerate(test_loader):
             data = data.to(device)
-            recon_batch, mu, logvar = model(data)
+            recon_batch, mu, logvar = model(data, chn_num, image_size, args.latent_size)
 
             loss, bce, kld = loss_function(recon_batch, data, mu, logvar)
             test_loss += loss
@@ -203,6 +206,7 @@ def make_db(path):
             data = data.unsqueeze(0)
 
             # mu, logvar = model.encode(data.contiguous().view(-1, 784 * 3))
+            mu, logvar = model.encode(data.contiguous().view(-1, image_size * image_size * chn_num))
             z = model.reparameterize(mu, logvar).cpu().detach().numpy().copy()
             z = z.tolist()
             z[0].append(f)
@@ -227,13 +231,14 @@ def latant_space_exploration(df, name):
             list_img.append(data)
 
         sample = torch.cat(list_img)
-        save_image(sample.view(len(df), 3, 28, 28),
+        save_image(sample.view(len(df), chn_num, image_size, image_size),
                    'results/' + args.start_time + '/' + list[i] + '_' + str(name) + '.png', nrow=int(math.sqrt(len(df))))
 
 
 if __name__ == "__main__":
     latent_size = args.latent_size
     interpolation = torch.linspace(-3, 3, 10)
+
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
@@ -251,7 +256,7 @@ if __name__ == "__main__":
                     sample = torch.cat(list)
                     generate = model.decode(sample).cpu()
 
-                    save_image(generate.view(args.latent_size * 6, 3, 28, 28),
+                    save_image(generate.view(args.latent_size * 6, chn_num, image_size, image_size),
                                'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(
                                    z + 1) + '.png', nrow=args.latent_size)
 
