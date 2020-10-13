@@ -88,9 +88,10 @@ test_loader = torch.utils.data.DataLoader(
 class VAE(nn.Module):
     def __init__(self, chn_num=1, image_size=28, latent=10):
         super(VAE, self).__init__()
+        self.chn_num = chn_num
+        self.image_size = image_size
+        self.latent = latent
 
-        # latent = args.latent_size
-        # self.fc1 = nn.Linear(784*3, 400)
         self.fc1 = nn.Linear(image_size * image_size * chn_num, 400)
         self.fc21 = nn.Linear(400, latent)
         self.fc22 = nn.Linear(400, latent)
@@ -110,8 +111,20 @@ class VAE(nn.Module):
         h3 = F.relu(self.fc3(z))
         return torch.sigmoid(self.fc4(h3))
 
-    def forward(self, x, chn_num=1, image_size=28, latent=10):
-        mu, logvar = self.encode(x.view(-1, image_size * image_size * chn_num))
+    # Reconstruction + KL divergence losses summed over all elements and batch
+    def loss_function(self,recon_x, x, mu, logvar):
+        BCE = F.binary_cross_entropy(recon_x, x.view(-1, self.image_size * self.image_size * self.chn_num), reduction='sum')
+
+        # see Appendix B from VAE paper:
+        # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+        # https://arxiv.org/abs/1312.6114
+        # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+        KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+        return BCE + args.beta * KLD, BCE, KLD
+
+    def forward(self, x):
+        mu, logvar = self.encode(x.view(-1, self.image_size * self.image_size * self.chn_num))
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
@@ -119,17 +132,17 @@ class VAE(nn.Module):
 model = VAE(chn_num,image_size,args.latent_size).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-# Reconstruction + KL divergence losses summed over all elements and batch
-def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, image_size * image_size * chn_num), reduction='sum')
-
-    # see Appendix B from VAE paper:
-    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
-    # https://arxiv.org/abs/1312.6114
-    # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-
-    return BCE + args.beta*KLD, BCE, KLD
+# # Reconstruction + KL divergence losses summed over all elements and batch
+# def loss_function(recon_x, x, mu, logvar):
+#     BCE = F.binary_cross_entropy(recon_x, x.view(-1, image_size * image_size * chn_num), reduction='sum')
+#
+#     # see Appendix B from VAE paper:
+#     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+#     # https://arxiv.org/abs/1312.6114
+#     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+#     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+#
+#     return BCE + args.beta*KLD, BCE, KLD
 
 
 def train(epoch):
@@ -141,8 +154,8 @@ def train(epoch):
     for batch_idx, (data, _) in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
-        recon_batch, mu, logvar = model(data, chn_num, image_size, args.latent_size)
-        loss, bce, kld = loss_function(recon_batch, data, mu, logvar)
+        recon_batch, mu, logvar = model(data)
+        loss, bce, kld = model.loss_function(recon_batch, data, mu, logvar)
         loss.backward()
 
         train_loss += loss.item()
@@ -173,11 +186,11 @@ def test(epoch):
 
     with torch.no_grad():
         for i, (data, _) in enumerate(test_loader):
-            print(0)
+            # print(0)
             data = data.to(device)
-            recon_batch, mu, logvar = model(data, chn_num, image_size, args.latent_size)
+            recon_batch, mu, logvar = model(data)
 
-            loss, bce, kld = loss_function(recon_batch, data, mu, logvar)
+            loss, bce, kld = model.loss_function(recon_batch, data, mu, logvar)
             test_loss += loss
             test_bce += bce
             test_kld += kld
