@@ -34,7 +34,7 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
 parser.add_argument('--beta', type=float, default=4., metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
 parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
 parser.add_argument('--start-time', type=str, default=start_time, metavar='ST', help='(default: today_time)')
-parser.add_argument('--fminst', type=bool, default=True, metavar='FM', help='(default: fashion_MNIST)')
+parser.add_argument('--fmnist', type=bool, default=True, metavar='FM', help='(default: fashion_MNIST)')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -116,7 +116,7 @@ class VAE(nn.Module):
         return self.decode(z), mu, logvar
 
 
-model = VAE().to(device)
+model = VAE(chn_num,image_size,args.latent_size).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # Reconstruction + KL divergence losses summed over all elements and batch
@@ -172,6 +172,7 @@ def test(epoch):
 
     with torch.no_grad():
         for i, (data, _) in enumerate(test_loader):
+            print(0)
             data = data.to(device)
             recon_batch, mu, logvar = model(data, chn_num, image_size, args.latent_size)
 
@@ -183,7 +184,7 @@ def test(epoch):
                 n = min(data.size(0), 10)
                 batch_size = min(data.size(0), args.batch_size)
                 comparison = torch.cat([data[:n],
-                                        recon_batch.view(batch_size, 3, 28, 28)[:n]])
+                                        recon_batch.view(batch_size, chn_num, image_size, image_size)[:n]])
                 # recon_batch.view(1, 3, 300, 300)[:n]])
                 save_image(comparison.cpu(),
                            'results/' + args.start_time + '/images/test/' + str(epoch) + '.png', nrow=n)
