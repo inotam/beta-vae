@@ -137,6 +137,7 @@ def train(epoch):
     train_loss = 0
     train_bce = 0
     train_kld = 0
+
     for batch_idx, (data, _) in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
