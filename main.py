@@ -247,21 +247,27 @@ def latant_space_exploration(df, name):
     df.to_csv('./results/' + args.start_time + '/db_' + str(name)+'.csv')
     col_list = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10']
 
+    if args.fmnist:
+        range_obj = range(0, int(len(df)/10), 9)
+    else:
+        range_obj = range(len(df))
+
     for i in range(10):
         df = df.sort_values(by=col_list[i])
         j = 0
         list_img = []
-        for j in range(len(df)):
+        for j in range_obj:
             # path = df.iloc[int(j/9.0*(len(df)-1)),10]
             path = df.iloc[j, 10]
+
             img = cv2.imread(path)
             img = img.transpose((2, 0, 1)) / 255.
             data = torch.from_numpy(img.astype(np.float32)).clone()
             list_img.append(data)
 
         sample = torch.cat(list_img)
-        save_image(sample.view(len(df), chn_num, image_size, image_size),
-                   'results/' + args.start_time + '/' + list[i] + '_' + str(name) + '.png', nrow=int(math.sqrt(len(df))))
+        save_image(sample.view(len(list_img), 3, image_size, image_size),
+                   'results/' + args.start_time + '/' + col_list[i] + '_' + str(name) + '.png', nrow=int(math.sqrt(len(list_img))))
 
 
 if __name__ == "__main__":
