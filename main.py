@@ -53,11 +53,24 @@ dict = {'hyper-parameter':args}
 
 if args.fmnist:
 
-    with open('../data/train.pickle','rb') as f:
-        train_dataset = cloudpickle.load(f)
+    train_dataset = datasets.ImageFolder(
+        '../data/FashionMNIST/train',
+        transforms.Compose([
+            transforms.Grayscale(),
+            transforms.ToTensor(),
+        ]))
 
-    with open('../data/test.pickle', 'rb') as f:
-        test_dataset = cloudpickle.load(f)
+    test_dataset = datasets.ImageFolder(
+        '../data/FashionMNIST/test',
+        transforms.Compose([
+            transforms.Grayscale(),
+            transforms.ToTensor(),
+        ]))
+    # with open('../data/train.pickle','rb') as f:
+    #     train_dataset = cloudpickle.load(f)
+    #
+    # with open('../data/test.pickle', 'rb') as f:
+    #     test_dataset = cloudpickle.load(f)
 
     chn_num = 1
     image_size = 28
@@ -232,9 +245,10 @@ def make_db(path):
 
 def latant_space_exploration(df, name):
     df.to_csv('./results/' + args.start_time + '/db_' + str(name)+'.csv')
+    col_list = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10']
 
     for i in range(10):
-        df = df.sort_values(by=list[i])
+        df = df.sort_values(by=col_list[i])
         j = 0
         list_img = []
         for j in range(len(df)):
@@ -275,8 +289,12 @@ if __name__ == "__main__":
                                'results/' + args.start_time + '/images/sample/' + str(epoch) + '_z' + str(
                                    z + 1) + '.png', nrow=args.latent_size)
 
-    df_train = make_db('../data/noskin_all_v2/noskin_28/train_d/train/*.jpg')
-    df_test = make_db('../data/noskin_all_v2/noskin_28/test_d/test/*.jpg')
+    if args.fmnist:
+        df_train = make_db('../data/FashionMNIST/train/*/*.png')
+        df_test = make_db('../data/FashionMNIST/test/*/*.png')
+    else:
+        df_train = make_db('../data/noskin_all_v2/noskin_28/train_d/train/*.jpg')
+        df_test = make_db('../data/noskin_all_v2/noskin_28/test_d/test/*.jpg')
 
     latant_space_exploration(df_train, 'train')
     latant_space_exploration(df_test, 'test')
