@@ -17,7 +17,7 @@ import csv
 import pandas as pd
 import itertools
 import math
-
+from distutils.util import strtobool
 now = datetime.datetime.now()
 start_time =  now.strftime('%Y%m%d%H%M%S')
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
@@ -34,7 +34,7 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
 parser.add_argument('--beta', type=float, default=4., metavar='B', help='beta parameter for KL-term in original beta-VAE(default: 4)')
 parser.add_argument('--latent-size', type=int, default=10, metavar='L', help='(default: 20)')
 parser.add_argument('--start-time', type=str, default=start_time, metavar='ST', help='(default: today_time)')
-parser.add_argument('--fmnist', type=bool, default=True, metavar='FM', help='(default: fashion_MNIST)')
+parser.add_argument('--fmnist', type=strtobool, default=True, metavar='FM', help='(default: fashion_MNIST)')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -244,11 +244,12 @@ def make_db(path):
     return df
 
 def latant_space_exploration(df, name):
+
     df.to_csv('./results/' + args.start_time + '/db_' + str(name)+'.csv')
     col_list = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10']
 
     if args.fmnist:
-        range_obj = range(0, int(len(df)/10), 9)
+        range_obj = range(0, len(df), 200)
     else:
         range_obj = range(len(df))
 
@@ -256,8 +257,10 @@ def latant_space_exploration(df, name):
         df = df.sort_values(by=col_list[i])
         j = 0
         list_img = []
+        # print(len(df))
         for j in range_obj:
             # path = df.iloc[int(j/9.0*(len(df)-1)),10]
+            # print(j)
             path = df.iloc[j, 10]
 
             img = cv2.imread(path)
@@ -307,5 +310,6 @@ if __name__ == "__main__":
 
     dict.update(model=model.to('cpu'))
 
+    print(dict)
     with open('./results/' + args.start_time + '/out.pickle', 'wb') as f:
         cloudpickle.dump(dict, f)
