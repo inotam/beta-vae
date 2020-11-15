@@ -18,8 +18,10 @@ import pandas as pd
 import itertools
 import math
 from distutils.util import strtobool
+
 now = datetime.datetime.now()
 start_time =  now.strftime('%Y%m%d%H%M%S')
+
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 128)')
@@ -244,6 +246,22 @@ def make_db(path):
     return df
 
 def latant_space_exploration(df, name):
+
+    df_label = pd.read_csv('./noskin_v2_label-export.csv')
+
+    # create dict
+    dict = {}
+    for i in range(len(df_label)):
+        # add label
+        dict[df_label.iloc[i, 0]] = df_label.iloc[i, 5]
+    # print(dict)
+
+    list_label = []
+
+    for i in range(len(df)):
+        list_label.append(dict[df.iloc[i, 10].split('/')[6]])
+
+    df['label'] = list_label
 
     df.to_csv('./results/' + args.start_time + '/db_' + str(name)+'.csv')
     col_list = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6','z7','z8','z9','z10']
